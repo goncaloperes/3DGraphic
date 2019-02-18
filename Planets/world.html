@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!--
+Author: Gonçalo Peres n.º 1800301
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>5.2 - Planets in the Sea</title>
+    <style>
+        body {
+            color: #FFF;
+            font-family: Monospace;
+            font-size: 12px;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 0px;
+            left: 10px;
+        }
+
+        footer .copyright {
+            font-size: 12px;
+            color: #ffffff;
+        }
+
+        footer .copyright p {
+            margin: 0;
+        }
+
+        footer nav {
+            margin-bottom: 10px;
+        }
+
+        footer nav a {
+            text-transform: capitalize;
+            border-bottom: 3px solid transparent;
+        }
+
+        footer nav a, footer nav a:focus, footer nav a:active {
+            color: #ffffff;
+        }
+
+        footer nav a.active {
+            border-bottom-color: #7c519d;
+        }
+
+        footer nav ul {
+            list-style: none;
+        }
+
+        footer nav ul li {
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+
+    </style>
+</head>
+
+<body>
+
+<script src="js/three.js"></script>
+<script src="js/controls/OrbitControls.js"></script>
+<script src="js/WaterShader.js"></script>
+<script src="js/Detector.js"></script>
+<div id="container"></div>
+
+<footer class="wow fadeInLeft" data-wow-delay="1s" id="sticky" style="pointer-events: auto;z-index:999999">
+    <nav>
+        <ul class="share-buttons">
+            <li>
+                <a class="active" href="https://career.goncaloperes.com/">CAREER</a>
+            </li>
+
+            <li>
+                <a href="https://.goncaloperes.com/">VISIT WEBSITE</a>
+            </li>
+
+
+            <li>&copy; Created by <a href="http://goncaloperes.com/" target="_blank" title="copyright">Gonçalo Peres.</a>
+            </li>
+
+
+        </ul>
+    </nav>
+</footer>
+
+
+<script>
+
+    if ( ! Detector.webgl ) {
+
+        Detector.addGetWebGLMessage();
+        document.getElementById( 'container' ).innerHTML = "";
+
+    }
+    var container;
+    var camera, scene, renderer;
+    var sphere;
+    var params = {
+        opacity: 1.0
+    };
+    var pointLight;
+    var controls;
+    var parameters = {
+        width: 2000,
+        height: 2000,
+        widthSegments: 250,
+        heightSegments: 250,
+        depth: 1500,
+        param: 4,
+        filterparam: 1
+    };
+    var waterNormals;
+    init();
+    animate();
+
+    function init() {
+
+        container = document.getElementById( 'container' );
+        //
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio( window.devicePixelRatio );
+        renderer.setSize( window.innerWidth, window.innerHeight );
+        container.appendChild( renderer.domElement );
+        //
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2( 0x000000, 0.0001 );
+        //
+        camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 0.5, 3000000 );
+        camera.position.set( 0, 750, 4000 );
+        //
+        controls = new THREE.OrbitControls( camera, renderer.domElement );
+        controls.enablePan = false;
+        controls.minDistance = 1000.0;
+        controls.maxDistance = 5000.0;
+        controls.maxPolarAngle = Math.PI * 0.495;
+        controls.target.set( 0, 500, 0 );
+        scene.add( new THREE.AmbientLight( 0xf7f7f7 ) );
+        //
+        // Lights
+        function createLight( color )	{
+
+            var pointLight = new THREE.PointLight( color, 1, 30 );
+            pointLight.castShadow = true;
+            pointLight.shadow.camera.near = 1;
+            pointLight.shadow.camera.far = 30;
+            // pointLight.shadowCameraVisible = true;
+            pointLight.shadow.bias = 0.01;
+            var geometry = new THREE.SphereGeometry( 20, 12, 6 );
+            var material = new THREE.MeshBasicMaterial(
+                {
+                    color: color
+                } );
+            var sphere = new THREE.Mesh( geometry, material );
+            pointLight.add( sphere );
+            return pointLight;
+
+        }
+        pointLight = createLight( 0xffffff );
+        scene.add( pointLight );
+        var light = new THREE.DirectionalLight( 0xffffbb, 1 );
+        light.position.set( 0, 600, 30 );
+        scene.add( light );
+        //
+        waterNormals = new THREE.TextureLoader().load( 'textures/sea.png' );
+        waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
+        water = new THREE.Water( renderer, camera, scene,
+            {
+                textureWidth: 512,
+                textureHeight: 512,
+                waterNormals: waterNormals,
+                alpha: 1.0,
+                sunDirection: light.position.clone().normalize(),
+                sunColor: 0xffffff,
+                waterColor: 0x40E0D0,
+                distortionScale: 50.0,
+                fog: scene.fog != undefined
+            } );
+        mirrorMesh = new THREE.Mesh( new THREE.PlaneBufferGeometry( parameters.width * 500, parameters.height * 500 ), water.material );
+        mirrorMesh.add( water );
+        mirrorMesh.rotation.x = - Math.PI * 0.5;
+        scene.add( mirrorMesh );
+        // skybox
+        var cubeMap = new THREE.CubeTexture( [] );
+        cubeMap.format = THREE.RGBFormat;
+        var loader = new THREE.ImageLoader();
+        loader.load( 'textures/sky.jpg', function ( image )	{
+
+            var getSide = function ( x, y )		{
+
+                var size = 1024;
+                var canvas = document.createElement( 'canvas' );
+                canvas.width = size;
+                canvas.height = size;
+                var context = canvas.getContext( '2d' );
+                context.drawImage( image, - x * size, - y * size );
+                return canvas;
+
+            };
+            cubeMap.images[ 0 ] = getSide( 2, 1 ); // px
+            cubeMap.images[ 1 ] = getSide( 0, 1 ); // nx
+            cubeMap.images[ 2 ] = getSide( 1, 0 ); // py
+            cubeMap.images[ 3 ] = getSide( 1, 2 ); // ny
+            cubeMap.images[ 4 ] = getSide( 1, 1 ); // pz
+            cubeMap.images[ 5 ] = getSide( 3, 1 ); // nz
+            cubeMap.needsUpdate = true;
+
+        } );
+        var cubeShader = THREE.ShaderLib[ 'cube' ];
+        cubeShader.uniforms[ 'tCube' ].value = cubeMap;
+        var skyBoxMaterial = new THREE.ShaderMaterial(
+            {
+                fragmentShader: cubeShader.fragmentShader,
+                vertexShader: cubeShader.vertexShader,
+                uniforms: cubeShader.uniforms,
+                depthWrite: false,
+                side: THREE.BackSide
+            } );
+        var skyBox = new THREE.Mesh( new THREE.BoxGeometry( 1000000, 1000000, 1000000 ), skyBoxMaterial );
+        scene.add( skyBox );
+        //
+        var geometry = new THREE.SphereGeometry( 400, 30, 30 );
+        var material = new THREE.MeshPhongMaterial(
+            {
+                map: THREE.ImageUtils.loadTexture( 'textures/earth.jpg', THREE.SphericalRefractionMapping )
+            } );
+        sphere2 = new THREE.Mesh( geometry, material );
+        sphere2.position.x = 0;
+        scene.add( sphere2 );
+        sphere2.add( oceanAmbientSound );
+
+        var geometry = new THREE.SphereGeometry( 400, 30, 30 );
+        var material2 = new THREE.MeshPhongMaterial(
+            {
+                map: THREE.ImageUtils.loadTexture( 'textures/gperes.jpg', THREE.SphericalRefractionMapping )
+            } );
+        sphere = new THREE.Mesh( geometry, material2 );
+        sphere.position.x = 950.0;
+        scene.add( sphere );
+
+        var geometry = new THREE.SphereGeometry( 400, 30, 30 );
+        var material3 = new THREE.MeshPhongMaterial(
+            {
+                map: THREE.ImageUtils.loadTexture( 'textures/uab.jpg', THREE.SphericalRefractionMapping )
+            } );
+        sphere = new THREE.Mesh( geometry, material3 );
+        sphere.position.x = - 950.0;
+        scene.add( sphere );
+
+        //
+
+        // instantiate a listener
+        var listener = new THREE.AudioListener();
+
+        // add the listener to the camera
+        camera.add( listener );
+
+        // instantiate audio object
+        var oceanAmbientSound = new THREE.PositionalAudio( listener );
+
+        // add the audio object to the scene
+        scene.add( oceanAmbientSound );
+
+        // instantiate a loader
+        var loader = new THREE.AudioLoader();
+
+        // load a resource
+        loader.load(
+            // resource URL
+            'sounds/sea.mp3',
+            // Function when resource is loaded
+            function ( audioBuffer ) {
+
+                // set the audio object buffer to the loaded object
+                oceanAmbientSound.setBuffer( audioBuffer );
+                oceanAmbientSound.setRefDistance( 100 );
+
+
+                oceanAmbientSound.setLoop( true );
+
+                // play the audio
+                oceanAmbientSound.play();
+
+            },
+            // Function called when download progresses
+            function ( xhr ) {
+
+                console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+            },
+            // Function called when download errors
+            function ( xhr ) {
+
+                console.log( 'An error happened' );
+
+            }
+        );
+
+        //
+        window.addEventListener( 'resize', onWindowResize, false );
+
+    }
+
+    function onWindowResize() {
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+
+    }
+    //
+    function animate() {
+
+        requestAnimationFrame( animate );
+        render();
+
+    }
+
+    function render() {
+
+        var time = performance.now() * 0.001;
+        sphere2.position.y = Math.sin( time ) * 500 + 250;
+        sphere2.rotation.x = time * 0.5;
+        sphere2.rotation.z = time * 0.51;
+        pointLight.position.x = Math.sin( time ) * 3000;
+        pointLight.position.y = Math.sin( time * 1.1 ) * 1 + 5;
+        pointLight.position.z = Math.sin( time * 1.2 ) * 2000;
+        water.material.uniforms.time.value += 1.0 / 60.0;
+        controls.update();
+        water.render();
+        renderer.render( scene, camera );
+
+    }
+
+
+</script>
+</body>
+</html>

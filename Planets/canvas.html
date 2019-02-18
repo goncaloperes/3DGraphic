@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+Author: Gonçalo Peres n.º 1800301
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>5.2 - WebGL - O meu primeiro canvas</title>
+
+    <!--Definir um estilo para o canvas.-->
+    <style type="text/css">
+        canvas {
+            border: 4px dotted green;
+        }
+    </style>
+    <script type="text/javascript">
+        // Declarar o Strict Mode - Permite colocar um programa ou uma função num "strict" operating context
+        // Para mais informação: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode
+        'use strict';
+
+        // Variável Global para aceder através da aplicação
+        let pw;
+
+        function updateClearColor(...color) {
+            // ES6 spread operator - Permite usar elementos num array como argumentos de uma função
+            pw.clearColor(...color);
+            pw.clear(pw.COLOR_BUFFER_BIT);
+            pw.viewport(0, 0, 0, 0);
+        }
+
+        function checkKey(event) {
+            switch (event.keyCode) {
+                // Número 1 => Verde
+                case 49: {
+                    updateClearColor(0.2, 0.8, 0.2, 1.0);
+                    break;
+                }
+                // Número 2 => Azul
+                case 50: {
+                    updateClearColor(0.2, 0.2, 0.8, 1.0);
+                    break;
+                }
+                // Número 3 => Cor Aleatória
+                case 51: {
+                    updateClearColor(Math.random(), Math.random(),
+                        Math.random(), 1.0);
+                    break;
+                }
+                // Número 4 => Buscar Cor
+                case 52: {
+                    const color = pw.getParameter(pw.COLOR_CLEAR_VALUE);
+                    // Os números são arredondados para uma cipher decimal para fins de visualização
+
+                    alert(`clearColor = (
+                    ${color[0].toFixed(1)},
+                    ${color[1].toFixed(1)},
+                    ${color[2].toFixed(1)}
+                    )`);
+                    window.focus();
+                    break;
+                }
+            }
+        }
+
+
+        function init() {
+            const canvas = document.getElementById('webgl-canvas');
+
+             // Certificar que o Canvas existe
+             if (!canvas) {
+                 console.error('Desculpa! A página ou não tem nenhum Canvas HTML5 ou este não foi encontrado.');
+                 return;
+             }
+
+            const pw = canvas.getContext('webgl2');
+
+             // Certificar que existe WebGL context
+             // Atribuir uma variável JavaScript (pw) para obter uma referência a um WebGL context
+             const message = pw
+                 ? 'Ohh yessss! Tens o WebGL2 context'
+                 : 'Deslculpa! O WebGL não está disponível';
+
+            alert(message);
+
+            // checkKey cada vez que uma tecla é pressionada
+            window.onkeydown = checkKey;
+        }
+
+        // init quando o documento estiver carregado
+        window.onload = init;
+    </script>
+</head>
+<body>
+<!--
+O id é o identificador do canvas no DOM
+width e height são usados para determinar o tamanho do elemento
+Nota: Se a mensagem "O browser não suporta o elemento HTML5 canvas." certifica que o browser suporta WebGL
+-->
+<canvas id="webgl-canvas" width="1000" height="500">
+    O browser não suporta o elemento HTML5 canvas.
+</canvas>
+
+</body>
+</html>
